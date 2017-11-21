@@ -32,12 +32,28 @@ int native_cpuid(unsigned int cpunr, unsigned long long idx,
 
 	bind_cpu(cpunr);
 
+#ifdef __PIC__
+	/* GCC on i386 bitches if you clobber ebx.  So hide it behind
+	 * gcc's back. */
+	asm(
+		"movl %%ebx,%%edi\n"
+		"cpuid\n"
+		"movl %%ebx,%1\n"
+		"movl %%edi,%%ebx\n"
+		: "=a" (a),
+		  "=m" (b),
+		  "+c" (c),
+		  "=d" (d)
+		: "0" ((unsigned int)idx)
+		: "edi");
+#else
 	asm("cpuid"
 		: "=a" (a),
 		  "=b" (b),
 		  "+c" (c),
 		  "=d" (d)
 		: "0" ((unsigned int)idx));
+#endif
 
 	if (eax!=NULL)
 		*eax = a;
